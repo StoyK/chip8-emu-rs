@@ -3,12 +3,14 @@ use rand::random;
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
 const SCREEN_SIZE: usize = SCREEN_WIDTH * SCREEN_HEIGHT;
+
+const START_ADDR: u16 = 0x200;
 const RAM_SIZE: usize = 4096;
 const NUM_REGS: usize = 16;
 const STACK_SIZE: usize = 16;
 const NUM_KEYS: usize = 16;
-const START_ADDR: u16 = 0x200;
 const FONTSET_SIZE: usize = 80;
+
 const FONTSET: [u8; FONTSET_SIZE] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -72,6 +74,7 @@ impl Chip8 {
         self.keys = [false; NUM_KEYS];
         self.dt = 0;
         self.st = 0;
+        self.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
     }
 
     fn push(&mut self, val: u16) {
@@ -117,8 +120,13 @@ impl Chip8 {
 
     pub fn load(&mut self, data: &[u8]) {
         let start = START_ADDR as usize;
-        let end = start + data.len();
+        let end = (START_ADDR as usize) + data.len();
         self.ram[start..end].copy_from_slice(data);
+    }
+
+    pub fn tick(&mut self) {
+        let op = self.fetch();
+        self.execute(op);
     }
 
     fn execute(&mut self, op: u16) {
@@ -290,19 +298,17 @@ impl Chip8 {
                 for y_line in 0..num_rows {
                     let addr = self.i_reg + y_line as u16;
                     let pixels = self.ram[addr as usize];
-
-                    for x_line in 0..num_rows {
-                        if (pixels & (0b10000000 >> x_line)) != 0 {
+                    for x_line in 0..8 {
+                        if (pixels & (0b1000_0000 >> x_line)) != 0 {
                             let x = (x_coord + x_line) as usize % SCREEN_WIDTH;
                             let y = (y_coord + y_line) as usize % SCREEN_HEIGHT;
 
-                            let idx = x + SCREEN_WIDTH + y;
+                            let idx = x + SCREEN_WIDTH * y;
                             flipped |= self.screen[idx];
                             self.screen[idx] ^= true;
                         }
                     }
                 }
-
                 if flipped {
                     self.v_regs[0xF] = 1;
                 } else {
@@ -400,10 +406,5 @@ impl Chip8 {
             }
             (_, _, _, _) => unimplemented!("Opcode {} not implemented", op),
         }
-    }
-
-    pub fn tick(&mut self) {
-        let op = self.fetch();
-        self.execute(op);
     }
 }

@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 chip8_core = { path="../chip8_core" }
-sdl2 = "0.35.2"
+sdl2 = { version = "0.35.2", features = ["bundled"], default-features = false }
