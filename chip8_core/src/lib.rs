@@ -43,8 +43,8 @@ pub struct Chip8 {
     st: u8,                      // Sound Timer
 }
 
-impl Chip8 {
-    pub fn new() -> Self {
+impl Default for Chip8 {
+    fn default() -> Self {
         let mut chip8 = Self {
             pc: START_ADDR,
             ram: [0; RAM_SIZE],
@@ -62,7 +62,9 @@ impl Chip8 {
 
         chip8
     }
+}
 
+impl Chip8 {
     pub fn reset(&mut self) {
         self.pc = START_ADDR;
         self.ram = [0; RAM_SIZE];
@@ -137,7 +139,7 @@ impl Chip8 {
 
         match (digit1, digit2, digit3, digit4) {
             // NOP
-            (0, 0, 0, 0) => return,
+            (0, 0, 0, 0) => (),
             // CLS
             (0, 0, 0xE, 0) => self.screen = [false; SCREEN_SIZE],
             // RET
@@ -222,7 +224,7 @@ impl Chip8 {
                 let y = digit3 as usize;
 
                 let (new_vx, carry) = self.v_regs[x].overflowing_add(self.v_regs[y]);
-                let new_vf = if carry { 1 } else { 0 };
+                let new_vf = u8::from(carry);
 
                 self.v_regs[x] = new_vx;
                 self.v_regs[0xF] = new_vf;
